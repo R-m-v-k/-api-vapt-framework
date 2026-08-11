@@ -1,5 +1,5 @@
 # ASTRA  Automated Security Testing and Reporting for APIs
-## v2.0.0  Generalised Framework
+
 
 **OWASP API Security Top 10 (2023) | Open Source | Works on ANY REST API**
 
