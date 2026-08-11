@@ -1,0 +1,56 @@
+TastyBites API - Endpoint List
+Base URL: http://localhost:4000
+==============================================
+
+AUTH
+------------------------------
+POST   /api/v1/auth/register        Register a new user
+POST   /api/v1/auth/login           Login (email + password)
+
+MENU
+------------------------------
+GET    /api/v1/menu                 List all available menu items                (public)
+GET    /api/v1/menu/:id              Get one menu item                            (public)
+POST   /api/v1/menu                 Add a new menu item                          (auth required, meant to be admin-only)
+POST   /api/v1/menu/import-image    Import a menu item image from a URL          (auth required, meant to be admin-only)
+DELETE /api/v1/menu/:id              Remove (soft-delete) a menu item             (auth required, meant to be admin-only)
+
+ORDERS
+------------------------------
+POST   /api/v1/orders                        Place a new order (requires table_number) (auth required)
+GET    /api/v1/orders                        List my own orders                   (auth required)
+GET    /api/v1/orders/:id                    Get an order by id                    (auth required)
+PATCH  /api/v1/orders/:id/status             Update order status                  (auth required)
+POST   /api/v1/orders/:id/kitchen-webhook    Kitchen display/POS status callback  (no auth)
+
+USERS
+------------------------------
+GET    /api/v1/users/me                   Get my own profile           (auth required)
+GET    /api/v1/users/:id                  Get a user's profile by id   (auth required)
+PUT    /api/v1/users/:id                  Update a user's profile      (auth required)
+POST   /api/v1/users/avatar-from-url      Set avatar by pasting a URL  (auth required)
+
+COUPONS
+------------------------------
+GET    /api/v1/coupons               List active coupons                          (public)
+POST   /api/v1/coupons/apply         Apply/redeem a coupon code                   (auth required)
+
+ADMIN
+------------------------------
+GET    /api/v1/admin/users           List all users                    (auth required, meant to be admin-only)
+GET    /api/v1/admin/orders          List all orders                   (auth required, meant to be admin-only)
+GET    /api/v1/admin/stats           Dashboard stats                   (auth required, meant to be admin-only)
+PATCH  /api/v1/admin/users/:id/role  Change a user's role               (auth required, meant to be admin-only)
+
+LEGACY / DEPRECATED (still mounted alongside v1)
+------------------------------
+GET    /api/old/menu                 (deprecated) Get all menu items, including unavailable ones
+GET    /api/old/orders/:id           (deprecated) Get an order by id
+
+MISC
+------------------------------
+GET    /api-docs/                    Swagger UI - interactive API documentation   (public, no auth)
+GET    /health                       Health check
+
+==============================================
+Total: 24 endpoints across 6 route groups

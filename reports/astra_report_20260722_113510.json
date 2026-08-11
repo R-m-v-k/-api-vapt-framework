@@ -1,0 +1,641 @@
+{
+  "framework": "ASTRA v1.0",
+  "target": "http://localhost:9000",
+  "scan_date": "2026-07-22 11:35:10",
+  "duration": "0:17:47",
+  "summary": {
+    "critical": 10,
+    "high": 14,
+    "medium": 3,
+    "low": 0,
+    "total": 27
+  },
+  "coverage": {
+    "detected": 10,
+    "total": 10,
+    "percentage": 100.0
+  },
+  "findings": [
+    {
+      "owasp_id": "API1:2023",
+      "title": "BOLA \u2014 Cross-user data access via /vehicles/1",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/vehicles/1",
+      "method": "GET",
+      "evidence": {
+        "path_template": "/vehicles/{vehicle_id}",
+        "test_id": 1,
+        "user_a": "alicetest@gmail.com",
+        "user_b": "bobtest@gmail.com",
+        "token_used": "User B token",
+        "response_status": 200,
+        "similarity_score": 1.0,
+        "ownership_mismatch": true,
+        "sensitive_fields_exposed": [
+          "id=1",
+          "owner_id=1"
+        ],
+        "differential_analysis": {
+          "similarity_analysis": "Similarity score 100.00% \u2014 requester received near-identical data to owner's resource",
+          "ownership_analysis": "Response contains owner's identifying fields: ['id=1', 'owner_id=1'] \u2014 requester received another user's data",
+          "summary": "Differential analysis: similarity=100.00%, ownership_mismatch=True, sensitive_fields=2, confidence=Critical"
+        },
+        "expected": "403 Forbidden for User B",
+        "actual": "200 OK \u2014 data returned"
+      },
+      "description": "Endpoint /vehicles/1 returns data to any authenticated user regardless of resource ownership. User B accessed an object belonging to User A without authorization check.",
+      "remediation": "Implement object-level authorization. Before returning any resource, verify: does the requesting user own this object? Return HTTP 403 if ownership check fails.",
+      "confidence": "Critical",
+      "fp_verified": true,
+      "verification_note": "Re-verified: HTTP 200 on second attempt"
+    },
+    {
+      "owasp_id": "API1:2023",
+      "title": "BOLA \u2014 Cross-user data access via /vehicles/2",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/vehicles/2",
+      "method": "GET",
+      "evidence": {
+        "path_template": "/vehicles/{id}",
+        "test_id": 2,
+        "user_a": "alicetest@gmail.com",
+        "user_b": "bobtest@gmail.com",
+        "token_used": "User B token",
+        "response_status": 200,
+        "similarity_score": 1.0,
+        "ownership_mismatch": true,
+        "sensitive_fields_exposed": [
+          "id=2",
+          "owner_id=2"
+        ],
+        "differential_analysis": {
+          "similarity_analysis": "Similarity score 100.00% \u2014 requester received near-identical data to owner's resource",
+          "ownership_analysis": "Response contains owner's identifying fields: ['id=2', 'owner_id=2'] \u2014 requester received another user's data",
+          "summary": "Differential analysis: similarity=100.00%, ownership_mismatch=True, sensitive_fields=2, confidence=Critical"
+        },
+        "expected": "403 Forbidden for User B",
+        "actual": "200 OK \u2014 data returned"
+      },
+      "description": "Endpoint /vehicles/2 returns data to any authenticated user regardless of resource ownership. User B accessed an object belonging to User A without authorization check.",
+      "remediation": "Implement object-level authorization. Before returning any resource, verify: does the requesting user own this object? Return HTTP 403 if ownership check fails.",
+      "confidence": "Critical",
+      "fp_verified": true,
+      "verification_note": "Re-verified: HTTP 200 on second attempt"
+    },
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth \u2014 /v1/vehicles returns data without authentication",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/v1/vehicles",
+      "method": "GET",
+      "evidence": {
+        "authentication_header": "ABSENT",
+        "response_status": 200,
+        "content_type": "application/json",
+        "expected": "401 Unauthorized",
+        "actual": "200 OK \u2014 JSON data returned without token",
+        "sensitive_fields_in_response": [],
+        "response_size_bytes": 1272,
+        "note": "Confirmed real endpoint \u2014 not a guessed path"
+      },
+      "description": "Endpoint /v1/vehicles returns data to unauthenticated requests. No Authorization header required. T-Mobile 2023 breach pattern: unauthenticated endpoints exposed 37 million customer records.",
+      "remediation": "Add authentication middleware to this endpoint. Return HTTP 401 for all requests without a valid token.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth \u2014 /api/info returns data without authentication",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/api/info",
+      "method": "GET",
+      "evidence": {
+        "authentication_header": "ABSENT",
+        "response_status": 200,
+        "content_type": "application/json",
+        "expected": "401 Unauthorized",
+        "actual": "200 OK \u2014 JSON data returned without token",
+        "sensitive_fields_in_response": [],
+        "response_size_bytes": 129,
+        "note": "Confirmed real endpoint \u2014 not a guessed path"
+      },
+      "description": "Endpoint /api/info returns data to unauthenticated requests. No Authorization header required. T-Mobile 2023 breach pattern: unauthenticated endpoints exposed 37 million customer records.",
+      "remediation": "Add authentication middleware to this endpoint. Return HTTP 401 for all requests without a valid token.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth / Misconfig \u2014 /health exposes credentials without auth",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/health",
+      "method": "GET",
+      "evidence": {
+        "auth_required": false,
+        "sensitive_keywords_found": [
+          "secret",
+          "key",
+          "database"
+        ],
+        "response_preview": "{'status': 'healthy', 'database_url': 'postgresql://admin:dbpass123@localhost:5432/vehiclerent', 'secret_key': 'secret', 'debug_mode': True, 'admin_email': 'admin@test.com', 'version': '1.0.0', 'environment': 'production'}",
+        "expected": "Either 401 or {status: ok} only",
+        "actual": "Credentials/config exposed: ['secret', 'key', 'database']"
+      },
+      "description": "Health endpoint /health exposes internal credentials without authentication.",
+      "remediation": "Remove all sensitive data from health endpoints. Return only {status: ok}.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth \u2014 JWT has no expiry claim",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/auth/login",
+      "method": "POST",
+      "evidence": {
+        "jwt_payload_keys": [
+          "user_id",
+          "role"
+        ],
+        "missing": "exp"
+      },
+      "description": "JWT tokens never expire \u2014 stolen tokens valid forever.",
+      "remediation": "Add exp claim. Set expiry to 15-60 minutes.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth \u2014 JWT 'None' Algorithm Attack Successful",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/health",
+      "method": "GET",
+      "evidence": {
+        "attack": "JWT none algorithm",
+        "forged_token_prefix": "eyJhbGciOiAibm9uZSIs...",
+        "response_status": 200,
+        "expected": "401 Unauthorized",
+        "actual": "200 OK \u2014 forged token accepted"
+      },
+      "description": "API accepts JWT with 'none' algorithm \u2014 signature bypassed.",
+      "remediation": "Whitelist allowed algorithms. Reject 'none'.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth \u2014 No brute force protection on login",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/auth/login",
+      "method": "POST",
+      "evidence": {
+        "attempts_made": 10,
+        "blocked": false,
+        "expected": "429 Too Many Requests after ~5 failures",
+        "actual": "All 10 requests processed without throttling"
+      },
+      "description": "Login allows unlimited failed attempts \u2014 credential stuffing possible.",
+      "remediation": "Rate limit: block after 5 failures per IP. Add exponential backoff.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API3:2023",
+      "title": "Excessive Exposure \u2014 /admin/users returns sensitive fields",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/admin/users",
+      "method": "GET",
+      "evidence": {
+        "sensitive_fields_found": [
+          "password"
+        ],
+        "all_keys": [
+          "users"
+        ],
+        "note": "Fields present in response that should never be exposed via API"
+      },
+      "description": "Endpoint /admin/users returns sensitive internal fields: password. These should never be exposed in API responses.",
+      "remediation": "Define explicit response allowlists. Strip sensitive fields before returning data. Use separate DTOs for internal vs external representations.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API3:2023",
+      "title": "Excessive Exposure \u2014 /health returns sensitive fields",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/health",
+      "method": "GET",
+      "evidence": {
+        "sensitive_fields_found": [
+          "secret"
+        ],
+        "all_keys": [
+          "status",
+          "database_url",
+          "secret_key",
+          "debug_mode",
+          "admin_email",
+          "version",
+          "environment"
+        ],
+        "note": "Fields present in response that should never be exposed via API"
+      },
+      "description": "Endpoint /health returns sensitive internal fields: secret. These should never be exposed in API responses.",
+      "remediation": "Define explicit response allowlists. Strip sensitive fields before returning data. Use separate DTOs for internal vs external representations.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API3:2023",
+      "title": "Excessive Exposure \u2014 /v1/vehicles returns sensitive fields",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/v1/vehicles",
+      "method": "GET",
+      "evidence": {
+        "sensitive_fields_found": [
+          "internal"
+        ],
+        "all_keys": [
+          "vehicles",
+          "api_version",
+          "deprecated",
+          "internal_note"
+        ],
+        "note": "Fields present in response that should never be exposed via API"
+      },
+      "description": "Endpoint /v1/vehicles returns sensitive internal fields: internal. These should never be exposed in API responses.",
+      "remediation": "Define explicit response allowlists. Strip sensitive fields before returning data. Use separate DTOs for internal vs external representations.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API4:2023",
+      "title": "No Rate Limiting \u2014 Rentals endpoint",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/rentals",
+      "method": "GET",
+      "evidence": {
+        "description": "50 rapid requests sent \u2014 no throttling detected",
+        "total_requests": 50,
+        "successful_requests": 50,
+        "duration_seconds": 103.34,
+        "requests_per_second": 0.5,
+        "status_codes": [
+          200
+        ],
+        "429_received": false,
+        "expected": "429 Too Many Requests",
+        "actual": "All 50 requests returned 200 OK"
+      },
+      "description": "Endpoint /rentals has no rate limiting. 50 requests were sent in 103.3s without any throttling response.",
+      "remediation": "Implement rate limiting (e.g., 100 requests per minute per user). Return 429 Too Many Requests with Retry-After header when exceeded. Consider implementing token bucket or sliding window algorithms.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "Re-verified: 5/5 requests succeeded without throttling"
+    },
+    {
+      "owasp_id": "API4:2023",
+      "title": "Unrestricted Resource Consumption \u2014 no rate limiting",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/auth/profile",
+      "method": "GET",
+      "evidence": {
+        "detection": "generic",
+        "requests_sent": 30,
+        "successful": 30,
+        "any_429": false,
+        "expected": "429 Too Many Requests after a threshold",
+        "actual": "all requests completed without throttling"
+      },
+      "description": "The endpoint /auth/profile served 30 rapid requests with no throttling (no HTTP 429). This permits scraping, brute force, and denial-of-service by resource exhaustion.",
+      "remediation": "Apply per-user/per-IP rate limiting at the gateway or middleware.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "Re-verified: 5/5 requests succeeded without throttling"
+    },
+    {
+      "owasp_id": "API4:2023",
+      "title": "No Rate Limiting on Authentication Endpoint",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/auth/login",
+      "method": "POST",
+      "evidence": {
+        "attempts": 15,
+        "blocked": false,
+        "expected": "429 after 5 failures",
+        "actual": "No blocking detected"
+      },
+      "description": "Login endpoint allows unlimited attempts, enabling credential stuffing and brute force attacks.",
+      "remediation": "Block or delay after 5 failed attempts per IP/account. Implement CAPTCHA and account lockout policies.",
+      "confidence": "High",
+      "fp_verified": false,
+      "rejection_reason": "Inconsistent results on re-test"
+    },
+    {
+      "owasp_id": "API5:2023",
+      "title": "BFLA \u2014 Regular user accessed admin function: /admin/users",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/admin/users",
+      "method": "GET",
+      "evidence": {
+        "description": "Get all users (admin only)",
+        "user_status": 200,
+        "admin_status": 200,
+        "expected": "403 Forbidden",
+        "actual": "200 OK",
+        "response_preview": "{\"users\":[{\"id\":1,\"name\":\"Alice Johnson\",\"email\":\"alicetest@gmail.com\",\"password\":\"Password@123\",\"role\":\"user\",\"phone\":\"0851234567\",\"credit_card\":\"4111111111111111\",\"balance\":500.0},{\"id\":2,\"name\":\"Bo"
+      },
+      "description": "Admin endpoint /admin/users accessible by regular users.",
+      "remediation": "Implement RBAC. Return 403 for insufficient privileges.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API5:2023",
+      "title": "BFLA \u2014 Regular user invoked privileged function",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/admin/users",
+      "method": "GET",
+      "evidence": {
+        "detection": "generic (keyword-identified admin endpoint)",
+        "matched_on": "path/summary admin keyword",
+        "regular_user": "alicetest@gmail.com",
+        "user_status": 200,
+        "admin_confirmed_privileged": true,
+        "expected": "403 Forbidden for non-admin user",
+        "actual": "200 returned to regular user"
+      },
+      "description": "The endpoint GET /admin/users appears to expose a privileged/administrative function, yet a standard user token receives a successful response. Function-level authorization is not enforced.",
+      "remediation": "Enforce role/permission checks on privileged endpoints server-side. Reject non-privileged callers with HTTP 403 regardless of endpoint knowledge.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API6:2023",
+      "title": "Business Logic \u2014 FREE promo code reusable unlimited times",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/rentals/promo",
+      "method": "POST",
+      "evidence": {
+        "code_used": "FREE",
+        "discount": "100%",
+        "attempts": 3,
+        "successful": 3,
+        "expected": "One use per user",
+        "actual": "3/3 uses succeeded"
+      },
+      "description": "FREE promo code (100% discount) can be applied unlimited times.",
+      "remediation": "Track per-user promo usage. Enforce single redemption per user per code.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API6:2023",
+      "title": "Business Flow Abuse \u2014 repeatable sensitive action",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/payments/process",
+      "method": "POST",
+      "evidence": {
+        "detection": "generic (repeatability test)",
+        "code_used": "WELCOME10",
+        "successful_repeats": "5/5",
+        "expected": "action limited / one-time / idempotent",
+        "actual": "5/5 repeated submissions accepted"
+      },
+      "description": "The sensitive business action POST /payments/process succeeded 5/5 times on repeated submission of the same input, indicating no redemption / idempotency / anti-automation control (e.g. a coupon reusable indefinitely).",
+      "remediation": "Track single-use tokens/redemptions server-side; add anti-automation controls.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API6:2023",
+      "title": "Business Flow Abuse \u2014 negative value accepted",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/payments/process",
+      "method": "POST",
+      "evidence": {
+        "detection": "generic (negative-value test)",
+        "response_status": 200,
+        "expected": "reject negative quantity/amount",
+        "actual": "negative value processed"
+      },
+      "description": "The endpoint POST /payments/process accepted a negative quantity/amount, which can invert a business transaction (e.g. a credit instead of a charge).",
+      "remediation": "Validate numeric business inputs server-side; reject non-positive values.",
+      "confidence": "Medium",
+      "fp_verified": true,
+      "verification_note": "No verifier available \u2014 accepted by default"
+    },
+    {
+      "owasp_id": "API7:2023",
+      "title": "SSRF \u2014 Server fetches user-supplied URLs (vehicle import)",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/vehicles/import",
+      "method": "POST",
+      "evidence": {
+        "ssrf_url": "http://localhost:9000/health",
+        "url_field": "url",
+        "response_status": 200,
+        "fetched_url_status": 200,
+        "fetched_data_preview": "{\"status\":\"healthy\",\"database_url\":\"postgresql://admin:dbpass123@localhost:5432/vehiclerent\",\"secret_key\":\"secret\",\"debug_mode\":true,\"admin_email\":\"admin@test.com\",\"version\":\"1.0.0\",\"environment\":\"production\"}",
+        "proof": "Server returned status_code and data from the fetched URL \u2014 confirming outbound request was made"
+      },
+      "description": "Vehicle import endpoint fetches any user-supplied URL without validation and returns the response.",
+      "remediation": "Whitelist allowed domains. Block private IP ranges: 127.x, 10.x, 169.254.x. Never return content from fetched URLs to client.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API8:2023",
+      "title": "Security Misconfiguration \u2014 Sensitive data at /health",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/health",
+      "method": "GET",
+      "evidence": {
+        "path": "/health",
+        "status_code": 200,
+        "content_type": "application/json",
+        "sensitive_keywords_found": [
+          "secret",
+          "key",
+          "database",
+          "debug",
+          "admin"
+        ],
+        "response_preview": "{\"status\":\"healthy\",\"database_url\":\"postgresql://admin:dbpass123@localhost:5432/vehiclerent\",\"secret_key\":\"secret\",\"debug_mode\":true,\"admin_email\":\"admin@test.com\",\"version\":\"1.0.0\",\"environment\":\"production\"}",
+        "auth_required": false,
+        "note": "Confirmed JSON response (not SPA fallback)"
+      },
+      "description": "Endpoint /health publicly exposes sensitive configuration data including: secret, key, database, debug, admin",
+      "remediation": "Disable or restrict access to debug/health endpoints in production. Never expose credentials, secrets, or internal config publicly.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "Re-verified: sensitive fields still present: ['secret', 'database']"
+    },
+    {
+      "owasp_id": "API8:2023",
+      "title": "Security Misconfiguration \u2014 Wildcard CORS origin",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/",
+      "method": "GET",
+      "evidence": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": "true",
+        "origin_sent": "https://evil.com"
+      },
+      "description": "CORS is configured to allow all origins (*).\nAny website can make cross-origin requests to this API.",
+      "remediation": "Restrict CORS to specific trusted origins. Never use wildcard (*) with credentials. Validate Origin header against an allowlist.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "Re-verified: Access-Control-Allow-Origin = *"
+    },
+    {
+      "owasp_id": "API8:2023",
+      "title": "Security Misconfiguration \u2014 Missing security headers",
+      "severity": "Medium",
+      "cvss_score": 5.0,
+      "endpoint": "/",
+      "method": "GET",
+      "evidence": {
+        "missing_headers": [
+          "X-Content-Type-Options",
+          "X-Frame-Options",
+          "Strict-Transport-Security",
+          "Content-Security-Policy",
+          "X-XSS-Protection"
+        ],
+        "present_headers": {
+          "date": "Wed, 22 Jul 2026 06:04:46 GMT",
+          "server": "uvicorn",
+          "content-type": "text/html; charset=utf-8",
+          "content-length": "845",
+          "last-modified": "Thu, 11 Jun 2026 11:21:16 GMT",
+          "etag": "\"91c0ea002c707e51f6005a023839693c\""
+        }
+      },
+      "description": "Security headers missing: X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security, Content-Security-Policy, X-XSS-Protection",
+      "remediation": "Add all recommended security headers. Use helmet.js (Node) or equivalent middleware.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "Re-verified: still missing ['x-content-type-options', 'x-frame-options', 'strict-transport-security', 'content-security-policy', 'x-xss-protection']"
+    },
+    {
+      "owasp_id": "API9:2023",
+      "title": "Improper Inventory \u2014 Deprecated v1 API endpoint still active",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/v1/vehicles",
+      "method": "GET",
+      "evidence": {
+        "v1_status": 200,
+        "v2_status": 200,
+        "v1_requires_auth": false,
+        "v2_requires_auth": true,
+        "v1_exposes_internal_fields": true,
+        "deprecation_note": "Migration to v2 pending \u2014 do not use in production",
+        "expected": "v1 should return 410 Gone",
+        "actual": "v1 returns 200 without authentication"
+      },
+      "description": "Deprecated v1 vehicles endpoint is still active, accessible without authentication, and returns sensitive internal fields.",
+      "remediation": "Return 410 Gone from /v1/vehicles. Enforce authentication on all API versions.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API9:2023",
+      "title": "Improper Inventory \u2014 API documentation exposed without auth",
+      "severity": "Medium",
+      "cvss_score": 5.0,
+      "endpoint": "/redoc",
+      "method": "GET",
+      "evidence": {
+        "detection": "generic",
+        "status": 200,
+        "expected": "docs restricted in production",
+        "actual": "documentation publicly reachable"
+      },
+      "description": "API documentation/spec at /redoc is reachable without authentication.",
+      "remediation": "Restrict or remove documentation endpoints in production.",
+      "confidence": "Medium",
+      "fp_verified": true,
+      "verification_note": "No verifier available \u2014 accepted by default"
+    },
+    {
+      "owasp_id": "API9:2023",
+      "title": "Improper Inventory \u2014 multiple live API versions",
+      "severity": "Medium",
+      "cvss_score": 5.0,
+      "endpoint": "/vehicles",
+      "method": "GET",
+      "evidence": {
+        "detection": "generic",
+        "versions_seen": [
+          "v1",
+          "v2"
+        ],
+        "expected": "deprecated versions retired",
+        "actual": "multiple versions coexist"
+      },
+      "description": "Multiple API versions are exposed simultaneously (v1, v2); older versions often lack the security controls of the current one.",
+      "remediation": "Retire deprecated versions; inventory and gate all exposed versions.",
+      "confidence": "Medium",
+      "fp_verified": true,
+      "verification_note": "No verifier available \u2014 accepted by default"
+    },
+    {
+      "owasp_id": "API10:2023",
+      "title": "Unsafe Consumption \u2014 Payment metadata reflected unsanitized",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/payments/process",
+      "method": "POST",
+      "evidence": {
+        "payload": "<script>alert('xss')</script>",
+        "field": "metadata",
+        "reflected": true,
+        "response_preview": "{\"payment_result\":{\"status\":\"success\",\"transaction_id\":\"TXN123456\",\"amount_charged\":100,\"currency\":\"EUR\",\"merchant_data\":{\"note\":\"<script>alert('xss')</script>\",\"redirect\":\"http://evil.com?data=<script>alert('xss')</script>\"}},\"rental_id\":1,\"message\":\"Payment processed\"}"
+      },
+      "description": "Payment endpoint reflects user-supplied metadata back in response without sanitization \u2014 unsafe consumption pattern.",
+      "remediation": "Never reflect user data without sanitization. Validate all inputs and outputs.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    }
+  ]
+}

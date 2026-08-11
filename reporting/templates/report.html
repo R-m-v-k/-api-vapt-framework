@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASTRA — API Security Report</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-2: #161b26;
+    --line: #232a37;
+    --line-soft: #1c2230;
+    --ink: #e6e9ef;
+    --ink-dim: #8a93a6;
+    --ink-faint: #5c6577;
+    --accent: #c8613b;          /* restrained clay accent, used sparingly */
+    --crit: #d9484b;
+    --high: #d98a2b;
+    --med: #4d84d1;
+    --low: #46a35e;
+    --found: #d9484b;
+    --clear: #46a35e;
+    --mono: 'SFMono-Regular', 'Cascadia Code', Consolas, monospace;
+    --sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+  /* ---- Header ---- */
+  .header { border-bottom: 1px solid var(--line); padding: 34px 40px 26px; background:
+            radial-gradient(120% 140% at 0% 0%, #141926 0%, var(--bg) 60%); }
+  .brand { display: flex; align-items: baseline; gap: 14px; }
+  .brand h1 { font-size: 1.9em; font-weight: 700; letter-spacing: 6px; color: var(--ink); }
+  .brand .mark { width: 10px; height: 26px; background: var(--accent); border-radius: 2px; transform: skewX(-12deg); }
+  .brand .subtitle { color: var(--ink-dim); font-size: 0.82em; letter-spacing: 1.5px; text-transform: uppercase; }
+  .meta { display: flex; gap: 0; margin-top: 22px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: fit-content; }
+  .meta-item { padding: 10px 22px 11px; border-right: 1px solid var(--line); }
+  .meta-item:last-child { border-right: none; }
+  .meta-item span { color: var(--ink-faint); font-size: 0.7em; letter-spacing: 1px; text-transform: uppercase; display: block; }
+  .meta-item strong { color: var(--ink); font-weight: 600; font-size: 0.95em; margin-top: 3px; display: block; }
+
+  .container { max-width: 1120px; margin: 0 auto; padding: 34px 40px 10px; }
+
+  .section-title { font-size: 0.82em; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-dim);
+                   margin: 38px 0 16px; display: flex; align-items: center; gap: 12px; }
+  .section-title::after { content: ""; flex: 1; height: 1px; background: var(--line-soft); }
+
+  /* ---- Summary ---- */
+  .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .summary-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; position: relative; }
+  .summary-card .rail { position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 2px; }
+  .summary-card.critical .rail { background: var(--crit); }
+  .summary-card.high .rail { background: var(--high); }
+  .summary-card.medium .rail { background: var(--med); }
+  .summary-card.low .rail { background: var(--low); }
+  .summary-card.total .rail { background: var(--ink-faint); }
+  .summary-card .count { font-size: 2.1em; font-weight: 700; letter-spacing: -1px; }
+  .summary-card.critical .count { color: var(--crit); }
+  .summary-card.high .count { color: var(--high); }
+  .summary-card.medium .count { color: var(--med); }
+  .summary-card.low .count { color: var(--low); }
+  .summary-card .label { color: var(--ink-dim); font-size: 0.72em; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px; }
+
+  /* ---- Coverage ---- */
+  .cov-caption { color: var(--ink-faint); font-size: 0.8em; margin: -6px 0 14px; }
+  .coverage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  @media (min-width: 760px) { .coverage-grid { grid-template-columns: repeat(5, 1fr); } }
+  .coverage-item { background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+                   padding: 14px 14px 13px; display: flex; flex-direction: column; gap: 9px; min-height: 96px; }
+  .coverage-item.detected { border-color: #3a2226; background: linear-gradient(180deg, #17121400, #1a1214 120%); }
+  .coverage-item .owasp-id { font-size: 0.68em; letter-spacing: 0.5px; color: var(--ink-faint); font-family: var(--mono); }
+  .coverage-item .owasp-name { font-size: 0.86em; color: var(--ink); font-weight: 600; flex: 1; }
+  .status-badge { align-self: flex-start; font-size: 0.66em; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+                  padding: 4px 9px; border-radius: 5px; border: 1px solid; }
+  .status-badge.found { color: var(--found); border-color: #4a2529; background: #1e1315; }
+  .status-badge.clear { color: var(--clear); border-color: #234230; background: #12211a; }
+
+  /* ---- Findings ---- */
+  .finding-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin: 12px 0; overflow: hidden; }
+  .finding-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; cursor: pointer; }
+  .finding-header:hover { background: var(--panel-2); }
+  .finding-title { font-weight: 600; color: var(--ink); font-size: 0.98em; }
+  .finding-owasp { color: var(--ink-faint); font-size: 0.78em; margin-top: 4px; font-family: var(--mono); }
+  .finding-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .severity-badge { padding: 4px 11px; border-radius: 5px; font-size: 0.68em; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border: 1px solid; }
+  .sev-Critical { color: var(--crit); border-color: #4a2529; background: #1e1315; }
+  .sev-High { color: var(--high); border-color: #4a3a22; background: #1e1811; }
+  .sev-Medium { color: var(--med); border-color: #22344a; background: #111823; }
+  .sev-Low { color: var(--low); border-color: #234230; background: #12211a; }
+  .verify-badge { padding: 4px 10px; border-radius: 5px; font-size: 0.66em; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border: 1px solid; }
+  .verify-badge.confirmed { color: var(--clear); border-color: #234230; background: #12211a; }
+  .verify-badge.unconfirmed { color: var(--ink-dim); border-color: var(--line); background: var(--panel-2); }
+
+  .finding-body { padding: 4px 20px 20px; border-top: 1px solid var(--line-soft); }
+  .info-row { display: flex; gap: 14px; margin: 12px 0; }
+  .info-label { color: var(--ink-faint); min-width: 110px; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.5px; padding-top: 1px; }
+  .info-value { color: var(--ink); font-size: 0.9em; }
+  .info-value.mono { font-family: var(--mono); font-size: 0.84em; }
+  .evidence-block { background: var(--bg); border: 1px solid var(--line-soft); border-radius: 7px; padding: 14px; margin-top: 6px;
+                    font-family: var(--mono); font-size: 0.8em; color: #9fd4ae; overflow-x: auto; white-space: pre-wrap; line-height: 1.55; }
+  .remediation-block { background: #10201a; border: 1px solid #234230; border-radius: 7px; padding: 13px 15px; margin-top: 12px; color: #8fce9f; font-size: 0.86em; }
+  .remediation-block strong { color: var(--clear); }
+  .rem-label { font-size: 0.72em; text-transform: uppercase; letter-spacing: 1px; color: var(--clear); display: block; margin-bottom: 4px; }
+
+  .no-findings { text-align: center; padding: 34px; color: var(--clear); background: #10201a; border-radius: 10px; border: 1px solid #234230; font-weight: 600; }
+
+  .footer { text-align: center; padding: 34px; color: var(--ink-faint); font-size: 0.78em; border-top: 1px solid var(--line); margin-top: 44px; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <span class="mark"></span>
+    <h1>ASTRA</h1>
+    <span class="subtitle">Automated Security Testing &amp; Reporting for APIs</span>
+  </div>
+  <div class="meta">
+    <div class="meta-item"><span>Target</span><strong>{{ target_url }}</strong></div>
+    <div class="meta-item"><span>Scan Date</span><strong>{{ scan_date }}</strong></div>
+    <div class="meta-item"><span>Duration</span><strong>{{ duration }}</strong></div>
+    <div class="meta-item"><span>Framework</span><strong>OWASP API Top 10 (2023)</strong></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- SUMMARY -->
+  <div class="section-title">Scan Summary</div>
+  <div class="summary-grid">
+    <div class="summary-card critical"><span class="rail"></span><div class="count">{{ summary.critical }}</div><div class="label">Critical</div></div>
+    <div class="summary-card high"><span class="rail"></span><div class="count">{{ summary.high }}</div><div class="label">High</div></div>
+    <div class="summary-card medium"><span class="rail"></span><div class="count">{{ summary.medium }}</div><div class="label">Medium</div></div>
+    <div class="summary-card low"><span class="rail"></span><div class="count">{{ summary.low }}</div><div class="label">Low</div></div>
+    <div class="summary-card total"><span class="rail"></span><div class="count">{{ summary.total }}</div><div class="label">Total</div></div>
+  </div>
+
+  <!-- OWASP COVERAGE -->
+  <div class="section-title">OWASP API Top 10 Coverage</div>
+  <div class="cov-caption">"Found" means ASTRA detected at least one issue in this category. "Not Found" means no issue was detected.</div>
+  <div class="coverage-grid">
+    {% for item in coverage %}
+    <div class="coverage-item {% if item.detected %}detected{% endif %}">
+      <div class="owasp-id">{{ item.id }}</div>
+      <div class="owasp-name">{{ item.name }}</div>
+      {% if item.detected %}
+      <span class="status-badge found">Found</span>
+      {% else %}
+      <span class="status-badge clear">Not Found</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- FINDINGS -->
+  <div class="section-title">Detailed Findings</div>
+
+  {% if findings %}
+    {% for finding in findings %}
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">{{ finding.title }}</div>
+          <div class="finding-owasp">{{ finding.owasp_id }} &nbsp;·&nbsp; CVSS {{ finding.cvss_score }} &nbsp;·&nbsp; Confidence: {{ finding.confidence }}</div>
+        </div>
+        <div class="finding-right">
+          {% if finding.fp_verified is defined %}
+            {% if finding.fp_verified %}
+            <span class="verify-badge confirmed">Confirmed</span>
+            {% else %}
+            <span class="verify-badge unconfirmed">Unconfirmed</span>
+            {% endif %}
+          {% endif %}
+          <span class="severity-badge sev-{{ finding.severity }}">{{ finding.severity }}</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">{{ finding.method }} {{ finding.endpoint }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">{{ finding.description }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{{ finding.evidence | tojson(indent=2) }}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          {{ finding.remediation }}
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="no-findings">No vulnerabilities were detected in this scan.</div>
+  {% endif %}
+
+</div>
+
+<div class="footer">
+  Generated by ASTRA Framework &nbsp;·&nbsp; For authorised security testing only<br>
+  OWASP API Security Top 10 (2023) &nbsp;·&nbsp; {{ scan_date }}
+</div>
+
+</body>
+</html>

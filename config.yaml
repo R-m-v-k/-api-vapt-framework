@@ -1,0 +1,199 @@
+# ─────────────────────────────────────────────────────────
+# ASTRA Framework Configuration
+# Automated Security Testing and Reporting for APIs
+# OWASP API Security Top 10 (2023)  |  v2.0.0
+#
+# HOW TO ADD A NEW TARGET:
+#   1. Copy the template block below into targets:
+#   2. Set base_url, auth_endpoint, token_field
+#   3. Add two user accounts with equal privileges
+#   4. Run: python cli/main.py --target <your_target_name>
+# ─────────────────────────────────────────────────────────
+
+framework:
+  name: "ASTRA"
+  version: "2.0.0"
+  description: "Automated API Security Testing and Reporting — Generalised"
+
+# ─────────────────────────────────────────────────────────
+# TARGET DEFINITIONS
+# ─────────────────────────────────────────────────────────
+targets:
+  # ── Independent third-party MERN target (fsojitra Registration-Login-CRUD) ──
+  # NON-STANDARD auth: raw JWT in a header literally named "token" (no Bearer prefix).
+  # Demonstrates ASTRA's configurable token_header / empty token_prefix.
+  tastybites:
+    base_url: "http://localhost:4000"
+    auth_endpoint: "/api/v1/auth/login"
+    auth_body_template: '{"email": "{email}", "password": "{password}"}'
+    token_field: "token"
+    token_header: "Authorization"
+    token_prefix: "Bearer"
+    type: "generic"
+    endpoints_file: "tastybites_routes.txt"
+    users:
+      user_a: { email: "usera@test.com", password: "Pass@123", role: "user" }
+      user_b: { email: "userb@test.com", password: "Pass@123", role: "user" }
+      admin:  { email: "admin@tastybites.com", password: "Admin@123", role: "admin" }
+
+
+  # ── OWASP crAPI ──────────────────────────────────────
+  crapi:
+    base_url: "http://localhost:8888"
+    auth_endpoint: "/identity/api/auth/login"
+    auth_body_template: '{"email": "{email}", "password": "{password}"}'
+    token_field: "token"
+    token_prefix: "Bearer"
+    type: "crapi"
+    openapi_paths:
+      - "/api-docs"
+      - "/openapi.json"
+      - "/swagger.json"
+    users:
+      user_a:
+        email: "alicetest@gmail.com"
+        password: "Password@123"
+        role: "user"
+        vin: "93E76F92448237PYT"
+      user_b:
+        email: "bobtest@gmail.com"
+        password: "Password@123"
+        role: "user"
+        vin: "WN51A21JG7N9XRD8E"
+      user_c:
+        email: "charlietest@gmail.com"
+        password: "Password@123"
+        role: "user"
+      admin:
+        email: "admintest@gmail.com"
+        password: "Admin@123"
+        role: "admin"
+
+  # ── Custom Vulnerable API (VehicleRent) ──────────────
+  custom_api:
+    base_url: "http://localhost:9000"
+    auth_endpoint: "/auth/login"
+    auth_body_template: '{"email": "{email}", "password": "{password}"}'
+    token_field: "access_token"
+    token_prefix: "Bearer"
+    type: "custom"
+    openapi_paths:
+      - "/openapi.json"
+      - "/docs/openapi.json"
+      - "/api/openapi.json"
+    users:
+      user_a:
+        email: "alicetest@gmail.com"
+        password: "Password@123"
+        role: "user"
+      user_b:
+        email: "bobtest@gmail.com"
+        password: "Password@123"
+        role: "user"
+      admin:
+        email: "admintest@gmail.com"
+        password: "Admin@123"
+        role: "admin"
+
+  # ── Facebook Replica (SocialConnect) ─────────────────
+  facebook_replica:
+    base_url: "http://localhost:9001"
+    auth_endpoint: "/api/auth/login"
+    auth_body_template: '{"email": "{email}", "password": "{password}"}'
+    token_field: "access_token"
+    token_prefix: "Bearer"
+    type: "generic"
+    openapi_paths:
+      - "/api/docs/openapi.json"
+      - "/openapi.json"
+    users:
+      user_a:
+        email: "alice@gmail.com"
+        password: "password123"
+        role: "user"
+      user_b:
+        email: "bob@gmail.com"
+        password: "password123"
+        role: "user"
+
+  # ── T-Mobile Replica (TeleConnect) ───────────────────
+  tmobile_replica:
+    base_url: "http://localhost:9002"
+    auth_endpoint: "/api/auth/login"
+    auth_body_template: '{"email": "{email}", "password": "{password}"}'
+    token_field: "access_token"
+    token_prefix: "Bearer"
+    type: "generic"
+    openapi_paths:
+      - "/api/docs/openapi.json"
+      - "/openapi.json"
+    users:
+      user_a:
+        email: "alice@gmail.com"
+        password: "Password@123"
+        role: "user"
+      user_b:
+        email: "bob@gmail.com"
+        password: "Password@123"
+        role: "user"
+
+
+  # ── AttendX Fullstack Attendance System ──────────────────
+  
+  # ── TEMPLATE — Copy this for any new target ──────────
+  # my_new_target:
+  #   base_url: "https://api.example.com"
+  #   auth_endpoint: "/auth/login"
+  #   auth_body_template: '{"email": "{email}", "password": "{password}"}'
+  #   token_field: "token"          # field name in login response
+  #   token_prefix: "Bearer"        # Authorization header prefix
+  #   type: "generic"
+  #   openapi_paths:
+  #     - "/openapi.json"
+  #     - "/api-docs"
+  #     - "/swagger.json"
+  #   users:
+  #     user_a:
+  #       email: "tester1@example.com"
+  #       password: "TestPass@123"
+  #       role: "user"
+  #     user_b:
+  #       email: "tester2@example.com"
+  #       password: "TestPass@123"
+  #       role: "user"
+  #     admin:
+  #       email: "admin@example.com"
+  #       password: "AdminPass@123"
+  #       role: "admin"
+
+# ─────────────────────────────────────────────────────────
+# SCAN SETTINGS
+# ─────────────────────────────────────────────────────────
+scanning:
+  timeout: 10
+  retry_attempts: 3
+  rate_limit_delay: 0.5
+  max_concurrent_requests: 5
+  rate_limit_test_count: 50
+  bola_test_ids: [1, 2, 3, 4, 5]        # IDs to try in generic BOLA
+  ssrf_payloads:
+    - "https://www.google.com"
+    - "http://169.254.169.254/latest/meta-data/"
+    - "http://localhost:80"
+    - "http://127.0.0.1:22"
+
+# ─────────────────────────────────────────────────────────
+# REPORTING
+# ─────────────────────────────────────────────────────────
+reporting:
+  output_dir: "./reports"
+  formats:
+    - html
+    - json
+
+# ─────────────────────────────────────────────────────────
+# ETHICS
+# ─────────────────────────────────────────────────────────
+ethics:
+  require_authorization_confirmation: true
+  log_all_targets: true

@@ -1,0 +1,325 @@
+{
+  "framework": "ASTRA v1.0",
+  "target": "http://localhost:9002",
+  "scan_date": "2026-07-22 12:47:08",
+  "duration": "0:14:36",
+  "summary": {
+    "critical": 3,
+    "high": 7,
+    "medium": 2,
+    "low": 0,
+    "total": 12
+  },
+  "coverage": {
+    "detected": 6,
+    "total": 10,
+    "percentage": 60.0
+  },
+  "findings": [
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth \u2014 /api/v1/customers returns data without authentication",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/api/v1/customers",
+      "method": "GET",
+      "evidence": {
+        "authentication_header": "ABSENT",
+        "response_status": 200,
+        "content_type": "application/json",
+        "expected": "401 Unauthorized",
+        "actual": "200 OK \u2014 JSON data returned without token",
+        "sensitive_fields_in_response": [
+          "credit_score_band",
+          "phone",
+          "email",
+          "date_of_birth",
+          "account_status",
+          "account_pin",
+          "billing_address",
+          "account_type",
+          "account_number",
+          "lines_on_account"
+        ],
+        "response_size_bytes": 13402,
+        "note": "Confirmed real endpoint \u2014 not a guessed path"
+      },
+      "description": "Endpoint /api/v1/customers returns data to unauthenticated requests. No Authorization header required. T-Mobile 2023 breach pattern: unauthenticated endpoints exposed 37 million customer records.",
+      "remediation": "Add authentication middleware to this endpoint. Return HTTP 401 for all requests without a valid token.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth / Misconfig \u2014 /api/health exposes credentials without auth",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/api/health",
+      "method": "GET",
+      "evidence": {
+        "auth_required": false,
+        "sensitive_keywords_found": [
+          "key",
+          "database",
+          "redis",
+          "api_key"
+        ],
+        "response_preview": "{'status': 'healthy', 'version': '3.0.0', 'database_url': 'mysql://tc_admin:TelC0nn3ct_Pr0d_2023!@db-prod.teleconnect.internal:3306/customer_data', 'internal_api_key': 'tc_internal_svc_key_prod_a8f3b2c1d4e5', 'redis_url': 'redis://:tc_r3dis_2023@cache.teleconnect.internal:6379', 'environment': 'prod",
+        "expected": "Either 401 or {status: ok} only",
+        "actual": "Credentials/config exposed: ['key', 'database', 'redis', 'api_key']"
+      },
+      "description": "Health endpoint /api/health exposes internal credentials without authentication.",
+      "remediation": "Remove all sensitive data from health endpoints. Return only {status: ok}.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth \u2014 No brute force protection on login",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/api/auth/login",
+      "method": "POST",
+      "evidence": {
+        "attempts_made": 10,
+        "blocked": false,
+        "expected": "429 Too Many Requests after ~5 failures",
+        "actual": "All 10 requests processed without throttling"
+      },
+      "description": "Login allows unlimited failed attempts \u2014 credential stuffing possible.",
+      "remediation": "Rate limit: block after 5 failures per IP. Add exponential backoff.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API3:2023",
+      "title": "Excessive Exposure \u2014 /api/auth/me returns sensitive fields",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/api/auth/me",
+      "method": "GET",
+      "evidence": {
+        "sensitive_fields_found": [
+          "account_number"
+        ],
+        "all_keys": [
+          "account_number",
+          "name",
+          "phone",
+          "email",
+          "plan",
+          "plan_price",
+          "lines_on_account",
+          "account_status",
+          "postpaid",
+          "account_type"
+        ],
+        "note": "Fields present in response that should never be exposed via API"
+      },
+      "description": "Endpoint /api/auth/me returns sensitive internal fields: account_number. These should never be exposed in API responses.",
+      "remediation": "Define explicit response allowlists. Strip sensitive fields before returning data. Use separate DTOs for internal vs external representations.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API3:2023",
+      "title": "Excessive Exposure \u2014 /api/v1/customers returns sensitive fields",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/api/v1/customers",
+      "method": "GET",
+      "evidence": {
+        "sensitive_fields_found": [
+          "credit_score",
+          "pin",
+          "account_number"
+        ],
+        "all_keys": [
+          "total",
+          "customers"
+        ],
+        "note": "Fields present in response that should never be exposed via API"
+      },
+      "description": "Endpoint /api/v1/customers returns sensitive internal fields: credit_score, pin, account_number. These should never be exposed in API responses.",
+      "remediation": "Define explicit response allowlists. Strip sensitive fields before returning data. Use separate DTOs for internal vs external representations.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API3:2023",
+      "title": "Excessive Exposure \u2014 /api/v1/my/account returns sensitive fields",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/api/v1/my/account",
+      "method": "GET",
+      "evidence": {
+        "sensitive_fields_found": [
+          "credit_score",
+          "pin",
+          "account_number"
+        ],
+        "all_keys": [
+          "account_number",
+          "name",
+          "phone",
+          "email",
+          "billing_address",
+          "date_of_birth",
+          "plan",
+          "plan_price",
+          "lines_on_account",
+          "account_pin",
+          "imsi",
+          "sim_icc_id",
+          "postpaid",
+          "account_status",
+          "credit_score_band",
+          "data_usage_gb",
+          "data_limit_gb",
+          "roaming_enabled",
+          "international_calling",
+          "account_type",
+          "contract_end"
+        ],
+        "note": "Fields present in response that should never be exposed via API"
+      },
+      "description": "Endpoint /api/v1/my/account returns sensitive internal fields: credit_score, pin, account_number. These should never be exposed in API responses.",
+      "remediation": "Define explicit response allowlists. Strip sensitive fields before returning data. Use separate DTOs for internal vs external representations.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API4:2023",
+      "title": "Unrestricted Resource Consumption \u2014 no rate limiting",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/api/auth/me",
+      "method": "GET",
+      "evidence": {
+        "detection": "generic",
+        "requests_sent": 30,
+        "successful": 30,
+        "any_429": false,
+        "expected": "429 Too Many Requests after a threshold",
+        "actual": "all requests completed without throttling"
+      },
+      "description": "The endpoint /api/auth/me served 30 rapid requests with no throttling (no HTTP 429). This permits scraping, brute force, and denial-of-service by resource exhaustion.",
+      "remediation": "Apply per-user/per-IP rate limiting at the gateway or middleware.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "Re-verified: 5/5 requests succeeded without throttling"
+    },
+    {
+      "owasp_id": "API4:2023",
+      "title": "No Rate Limiting on Authentication Endpoint",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/api/auth/login",
+      "method": "POST",
+      "evidence": {
+        "attempts": 15,
+        "blocked": false,
+        "expected": "429 after 5 failures",
+        "actual": "No blocking detected"
+      },
+      "description": "Login endpoint allows unlimited attempts, enabling credential stuffing and brute force attacks.",
+      "remediation": "Block or delay after 5 failed attempts per IP/account. Implement CAPTCHA and account lockout policies.",
+      "confidence": "High",
+      "fp_verified": false,
+      "rejection_reason": "Inconsistent results on re-test"
+    },
+    {
+      "owasp_id": "API5:2023",
+      "title": "BFLA \u2014 Regular user invoked privileged function",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/api/v1/admin/customers",
+      "method": "GET",
+      "evidence": {
+        "detection": "generic (keyword-identified admin endpoint)",
+        "matched_on": "path/summary admin keyword",
+        "regular_user": "alice@gmail.com",
+        "user_status": 200,
+        "admin_confirmed_privileged": false,
+        "expected": "403 Forbidden for non-admin user",
+        "actual": "200 returned to regular user"
+      },
+      "description": "The endpoint GET /api/v1/admin/customers appears to expose a privileged/administrative function, yet a standard user token receives a successful response. Function-level authorization is not enforced.",
+      "remediation": "Enforce role/permission checks on privileged endpoints server-side. Reject non-privileged callers with HTTP 403 regardless of endpoint knowledge.",
+      "confidence": "Medium",
+      "fp_verified": true,
+      "verification_note": "No verifier available \u2014 accepted by default"
+    },
+    {
+      "owasp_id": "API8:2023",
+      "title": "Security Misconfiguration \u2014 Wildcard CORS origin",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/",
+      "method": "GET",
+      "evidence": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": "true",
+        "origin_sent": "https://evil.com"
+      },
+      "description": "CORS is configured to allow all origins (*).\nAny website can make cross-origin requests to this API.",
+      "remediation": "Restrict CORS to specific trusted origins. Never use wildcard (*) with credentials. Validate Origin header against an allowlist.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "Re-verified: Access-Control-Allow-Origin = *"
+    },
+    {
+      "owasp_id": "API8:2023",
+      "title": "Security Misconfiguration \u2014 Missing security headers",
+      "severity": "Medium",
+      "cvss_score": 5.0,
+      "endpoint": "/",
+      "method": "GET",
+      "evidence": {
+        "missing_headers": [
+          "X-Content-Type-Options",
+          "X-Frame-Options",
+          "Strict-Transport-Security",
+          "Content-Security-Policy",
+          "X-XSS-Protection"
+        ],
+        "present_headers": {
+          "date": "Wed, 22 Jul 2026 07:16:57 GMT",
+          "server": "uvicorn",
+          "content-length": "26389",
+          "content-type": "text/html; charset=utf-8"
+        }
+      },
+      "description": "Security headers missing: X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security, Content-Security-Policy, X-XSS-Protection",
+      "remediation": "Add all recommended security headers. Use helmet.js (Node) or equivalent middleware.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "Re-verified: still missing ['x-content-type-options', 'x-frame-options', 'strict-transport-security', 'content-security-policy', 'x-xss-protection']"
+    },
+    {
+      "owasp_id": "API9:2023",
+      "title": "Improper Inventory \u2014 API documentation exposed without auth",
+      "severity": "Medium",
+      "cvss_score": 5.0,
+      "endpoint": "/api/docs",
+      "method": "GET",
+      "evidence": {
+        "detection": "generic",
+        "status": 200,
+        "expected": "docs restricted in production",
+        "actual": "documentation publicly reachable"
+      },
+      "description": "API documentation/spec at /api/docs is reachable without authentication.",
+      "remediation": "Restrict or remove documentation endpoints in production.",
+      "confidence": "Medium",
+      "fp_verified": true,
+      "verification_note": "No verifier available \u2014 accepted by default"
+    }
+  ]
+}

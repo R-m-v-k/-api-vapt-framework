@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASTRA — API Security Report</title>
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #12161f;
+    --panel-2: #161b26;
+    --line: #232a37;
+    --line-soft: #1c2230;
+    --ink: #e6e9ef;
+    --ink-dim: #8a93a6;
+    --ink-faint: #5c6577;
+    --accent: #c8613b;          /* restrained clay accent, used sparingly */
+    --crit: #d9484b;
+    --high: #d98a2b;
+    --med: #4d84d1;
+    --low: #46a35e;
+    --found: #d9484b;
+    --clear: #46a35e;
+    --mono: 'SFMono-Regular', 'Cascadia Code', Consolas, monospace;
+    --sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--ink); line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+  /* ---- Header ---- */
+  .header { border-bottom: 1px solid var(--line); padding: 34px 40px 26px; background:
+            radial-gradient(120% 140% at 0% 0%, #141926 0%, var(--bg) 60%); }
+  .brand { display: flex; align-items: baseline; gap: 14px; }
+  .brand h1 { font-size: 1.9em; font-weight: 700; letter-spacing: 6px; color: var(--ink); }
+  .brand .mark { width: 10px; height: 26px; background: var(--accent); border-radius: 2px; transform: skewX(-12deg); }
+  .brand .subtitle { color: var(--ink-dim); font-size: 0.82em; letter-spacing: 1.5px; text-transform: uppercase; }
+  .meta { display: flex; gap: 0; margin-top: 22px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; width: fit-content; }
+  .meta-item { padding: 10px 22px 11px; border-right: 1px solid var(--line); }
+  .meta-item:last-child { border-right: none; }
+  .meta-item span { color: var(--ink-faint); font-size: 0.7em; letter-spacing: 1px; text-transform: uppercase; display: block; }
+  .meta-item strong { color: var(--ink); font-weight: 600; font-size: 0.95em; margin-top: 3px; display: block; }
+
+  .container { max-width: 1120px; margin: 0 auto; padding: 34px 40px 10px; }
+
+  .section-title { font-size: 0.82em; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-dim);
+                   margin: 38px 0 16px; display: flex; align-items: center; gap: 12px; }
+  .section-title::after { content: ""; flex: 1; height: 1px; background: var(--line-soft); }
+
+  /* ---- Summary ---- */
+  .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  .summary-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; position: relative; }
+  .summary-card .rail { position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 2px; }
+  .summary-card.critical .rail { background: var(--crit); }
+  .summary-card.high .rail { background: var(--high); }
+  .summary-card.medium .rail { background: var(--med); }
+  .summary-card.low .rail { background: var(--low); }
+  .summary-card.total .rail { background: var(--ink-faint); }
+  .summary-card .count { font-size: 2.1em; font-weight: 700; letter-spacing: -1px; }
+  .summary-card.critical .count { color: var(--crit); }
+  .summary-card.high .count { color: var(--high); }
+  .summary-card.medium .count { color: var(--med); }
+  .summary-card.low .count { color: var(--low); }
+  .summary-card .label { color: var(--ink-dim); font-size: 0.72em; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px; }
+
+  /* ---- Coverage ---- */
+  .cov-caption { color: var(--ink-faint); font-size: 0.8em; margin: -6px 0 14px; }
+  .coverage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  @media (min-width: 760px) { .coverage-grid { grid-template-columns: repeat(5, 1fr); } }
+  .coverage-item { background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+                   padding: 14px 14px 13px; display: flex; flex-direction: column; gap: 9px; min-height: 96px; }
+  .coverage-item.detected { border-color: #3a2226; background: linear-gradient(180deg, #17121400, #1a1214 120%); }
+  .coverage-item .owasp-id { font-size: 0.68em; letter-spacing: 0.5px; color: var(--ink-faint); font-family: var(--mono); }
+  .coverage-item .owasp-name { font-size: 0.86em; color: var(--ink); font-weight: 600; flex: 1; }
+  .status-badge { align-self: flex-start; font-size: 0.66em; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+                  padding: 4px 9px; border-radius: 5px; border: 1px solid; }
+  .status-badge.found { color: var(--found); border-color: #4a2529; background: #1e1315; }
+  .status-badge.clear { color: var(--clear); border-color: #234230; background: #12211a; }
+
+  /* ---- Findings ---- */
+  .finding-card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin: 12px 0; overflow: hidden; }
+  .finding-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px; cursor: pointer; }
+  .finding-header:hover { background: var(--panel-2); }
+  .finding-title { font-weight: 600; color: var(--ink); font-size: 0.98em; }
+  .finding-owasp { color: var(--ink-faint); font-size: 0.78em; margin-top: 4px; font-family: var(--mono); }
+  .finding-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .severity-badge { padding: 4px 11px; border-radius: 5px; font-size: 0.68em; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border: 1px solid; }
+  .sev-Critical { color: var(--crit); border-color: #4a2529; background: #1e1315; }
+  .sev-High { color: var(--high); border-color: #4a3a22; background: #1e1811; }
+  .sev-Medium { color: var(--med); border-color: #22344a; background: #111823; }
+  .sev-Low { color: var(--low); border-color: #234230; background: #12211a; }
+  .verify-badge { padding: 4px 10px; border-radius: 5px; font-size: 0.66em; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; border: 1px solid; }
+  .verify-badge.confirmed { color: var(--clear); border-color: #234230; background: #12211a; }
+  .verify-badge.unconfirmed { color: var(--ink-dim); border-color: var(--line); background: var(--panel-2); }
+
+  .finding-body { padding: 4px 20px 20px; border-top: 1px solid var(--line-soft); }
+  .info-row { display: flex; gap: 14px; margin: 12px 0; }
+  .info-label { color: var(--ink-faint); min-width: 110px; font-size: 0.78em; text-transform: uppercase; letter-spacing: 0.5px; padding-top: 1px; }
+  .info-value { color: var(--ink); font-size: 0.9em; }
+  .info-value.mono { font-family: var(--mono); font-size: 0.84em; }
+  .evidence-block { background: var(--bg); border: 1px solid var(--line-soft); border-radius: 7px; padding: 14px; margin-top: 6px;
+                    font-family: var(--mono); font-size: 0.8em; color: #9fd4ae; overflow-x: auto; white-space: pre-wrap; line-height: 1.55; }
+  .remediation-block { background: #10201a; border: 1px solid #234230; border-radius: 7px; padding: 13px 15px; margin-top: 12px; color: #8fce9f; font-size: 0.86em; }
+  .remediation-block strong { color: var(--clear); }
+  .rem-label { font-size: 0.72em; text-transform: uppercase; letter-spacing: 1px; color: var(--clear); display: block; margin-bottom: 4px; }
+
+  .no-findings { text-align: center; padding: 34px; color: var(--clear); background: #10201a; border-radius: 10px; border: 1px solid #234230; font-weight: 600; }
+
+  .footer { text-align: center; padding: 34px; color: var(--ink-faint); font-size: 0.78em; border-top: 1px solid var(--line); margin-top: 44px; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="brand">
+    <span class="mark"></span>
+    <h1>ASTRA</h1>
+    <span class="subtitle">Automated Security Testing &amp; Reporting for APIs</span>
+  </div>
+  <div class="meta">
+    <div class="meta-item"><span>Target</span><strong>http://localhost:9000</strong></div>
+    <div class="meta-item"><span>Scan Date</span><strong>2026-07-22 11:35:10</strong></div>
+    <div class="meta-item"><span>Duration</span><strong>0:17:47</strong></div>
+    <div class="meta-item"><span>Framework</span><strong>OWASP API Top 10 (2023)</strong></div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- SUMMARY -->
+  <div class="section-title">Scan Summary</div>
+  <div class="summary-grid">
+    <div class="summary-card critical"><span class="rail"></span><div class="count">10</div><div class="label">Critical</div></div>
+    <div class="summary-card high"><span class="rail"></span><div class="count">14</div><div class="label">High</div></div>
+    <div class="summary-card medium"><span class="rail"></span><div class="count">3</div><div class="label">Medium</div></div>
+    <div class="summary-card low"><span class="rail"></span><div class="count">0</div><div class="label">Low</div></div>
+    <div class="summary-card total"><span class="rail"></span><div class="count">27</div><div class="label">Total</div></div>
+  </div>
+
+  <!-- OWASP COVERAGE -->
+  <div class="section-title">OWASP API Top 10 Coverage</div>
+  <div class="cov-caption">"Found" means ASTRA detected at least one issue in this category. "Not Found" means no issue was detected.</div>
+  <div class="coverage-grid">
+    
+    <div class="coverage-item detected">
+      <div class="owasp-id">API1:2023</div>
+      <div class="owasp-name">BOLA</div>
+      
+      <span class="status-badge found">Found</span>
+      
+    </div>
+    
+    <div class="coverage-item detected">
+      <div class="owasp-id">API2:2023</div>
+      <div class="owasp-name">Broken Auth</div>
+      
+      <span class="status-badge found">Found</span>
+      
+    </div>
+    
+    <div class="coverage-item detected">
+      <div class="owasp-id">API3:2023</div>
+      <div class="owasp-name">BOPLA</div>
+      
+      <span class="status-badge found">Found</span>
+      
+    </div>
+    
+    <div class="coverage-item detected">
+      <div class="owasp-id">API4:2023</div>
+      <div class="owasp-name">Rate Limiting</div>
+      
+      <span class="status-badge found">Found</span>
+      
+    </div>
+    
+    <div class="coverage-item detected">
+      <div class="owasp-id">API5:2023</div>
+      <div class="owasp-name">BFLA</div>
+      
+      <span class="status-badge found">Found</span>
+      
+    </div>
+    
+    <div class="coverage-item detected">
+      <div class="owasp-id">API6:2023</div>
+      <div class="owasp-name">Business Logic</div>
+      
+      <span class="status-badge found">Found</span>
+      
+    </div>
+    
+    <div class="coverage-item detected">
+      <div class="owasp-id">API7:2023</div>
+      <div class="owasp-name">SSRF</div>
+      
+      <span class="status-badge found">Found</span>
+      
+    </div>
+    
+    <div class="coverage-item detected">
+      <div class="owasp-id">API8:2023</div>
+      <div class="owasp-name">Misconfiguration</div>
+      
+      <span class="status-badge found">Found</span>
+      
+    </div>
+    
+    <div class="coverage-item detected">
+      <div class="owasp-id">API9:2023</div>
+      <div class="owasp-name">Inventory</div>
+      
+      <span class="status-badge found">Found</span>
+      
+    </div>
+    
+    <div class="coverage-item detected">
+      <div class="owasp-id">API10:2023</div>
+      <div class="owasp-name">Unsafe Consumption</div>
+      
+      <span class="status-badge found">Found</span>
+      
+    </div>
+    
+  </div>
+
+  <!-- FINDINGS -->
+  <div class="section-title">Detailed Findings</div>
+
+  
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">BOLA — Cross-user data access via /vehicles/1</div>
+          <div class="finding-owasp">API1:2023 &nbsp;·&nbsp; CVSS 9.0 &nbsp;·&nbsp; Confidence: Critical</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-Critical">Critical</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /vehicles/1</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Endpoint /vehicles/1 returns data to any authenticated user regardless of resource ownership. User B accessed an object belonging to User A without authorization check.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "path_template": "/vehicles/{vehicle_id}",
+  "test_id": 1,
+  "user_a": "alicetest@gmail.com",
+  "user_b": "bobtest@gmail.com",
+  "token_used": "User B token",
+  "response_status": 200,
+  "similarity_score": 1.0,
+  "ownership_mismatch": true,
+  "sensitive_fields_exposed": [
+    "id=1",
+    "owner_id=1"
+  ],
+  "differential_analysis": {
+    "similarity_analysis": "Similarity score 100.00% \u2014 requester received near-identical data to owner's resource",
+    "ownership_analysis": "Response contains owner's identifying fields: ['id=1', 'owner_id=1'] \u2014 requester received another user's data",
+    "summary": "Differential analysis: similarity=100.00%, ownership_mismatch=True, sensitive_fields=2, confidence=Critical"
+  },
+  "expected": "403 Forbidden for User B",
+  "actual": "200 OK \u2014 data returned"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Implement object-level authorization. Before returning any resource, verify: does the requesting user own this object? Return HTTP 403 if ownership check fails.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">BOLA — Cross-user data access via /vehicles/2</div>
+          <div class="finding-owasp">API1:2023 &nbsp;·&nbsp; CVSS 9.0 &nbsp;·&nbsp; Confidence: Critical</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-Critical">Critical</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /vehicles/2</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Endpoint /vehicles/2 returns data to any authenticated user regardless of resource ownership. User B accessed an object belonging to User A without authorization check.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "path_template": "/vehicles/{id}",
+  "test_id": 2,
+  "user_a": "alicetest@gmail.com",
+  "user_b": "bobtest@gmail.com",
+  "token_used": "User B token",
+  "response_status": 200,
+  "similarity_score": 1.0,
+  "ownership_mismatch": true,
+  "sensitive_fields_exposed": [
+    "id=2",
+    "owner_id=2"
+  ],
+  "differential_analysis": {
+    "similarity_analysis": "Similarity score 100.00% \u2014 requester received near-identical data to owner's resource",
+    "ownership_analysis": "Response contains owner's identifying fields: ['id=2', 'owner_id=2'] \u2014 requester received another user's data",
+    "summary": "Differential analysis: similarity=100.00%, ownership_mismatch=True, sensitive_fields=2, confidence=Critical"
+  },
+  "expected": "403 Forbidden for User B",
+  "actual": "200 OK \u2014 data returned"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Implement object-level authorization. Before returning any resource, verify: does the requesting user own this object? Return HTTP 403 if ownership check fails.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Broken Auth — /v1/vehicles returns data without authentication</div>
+          <div class="finding-owasp">API2:2023 &nbsp;·&nbsp; CVSS 9.0 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-Critical">Critical</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /v1/vehicles</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Endpoint /v1/vehicles returns data to unauthenticated requests. No Authorization header required. T-Mobile 2023 breach pattern: unauthenticated endpoints exposed 37 million customer records.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "authentication_header": "ABSENT",
+  "response_status": 200,
+  "content_type": "application/json",
+  "expected": "401 Unauthorized",
+  "actual": "200 OK \u2014 JSON data returned without token",
+  "sensitive_fields_in_response": [],
+  "response_size_bytes": 1272,
+  "note": "Confirmed real endpoint \u2014 not a guessed path"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Add authentication middleware to this endpoint. Return HTTP 401 for all requests without a valid token.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Broken Auth — /api/info returns data without authentication</div>
+          <div class="finding-owasp">API2:2023 &nbsp;·&nbsp; CVSS 9.0 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-Critical">Critical</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /api/info</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Endpoint /api/info returns data to unauthenticated requests. No Authorization header required. T-Mobile 2023 breach pattern: unauthenticated endpoints exposed 37 million customer records.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "authentication_header": "ABSENT",
+  "response_status": 200,
+  "content_type": "application/json",
+  "expected": "401 Unauthorized",
+  "actual": "200 OK \u2014 JSON data returned without token",
+  "sensitive_fields_in_response": [],
+  "response_size_bytes": 129,
+  "note": "Confirmed real endpoint \u2014 not a guessed path"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Add authentication middleware to this endpoint. Return HTTP 401 for all requests without a valid token.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Broken Auth / Misconfig — /health exposes credentials without auth</div>
+          <div class="finding-owasp">API2:2023 &nbsp;·&nbsp; CVSS 9.0 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-Critical">Critical</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /health</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Health endpoint /health exposes internal credentials without authentication.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "auth_required": false,
+  "sensitive_keywords_found": [
+    "secret",
+    "key",
+    "database"
+  ],
+  "response_preview": "{'status': 'healthy', 'database_url': 'postgresql://admin:dbpass123@localhost:5432/vehiclerent', 'secret_key': 'secret', 'debug_mode': True, 'admin_email': 'admin@test.com', 'version': '1.0.0', 'environment': 'production'}",
+  "expected": "Either 401 or {status: ok} only",
+  "actual": "Credentials/config exposed: ['secret', 'key', 'database']"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Remove all sensitive data from health endpoints. Return only {status: ok}.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Broken Auth — JWT has no expiry claim</div>
+          <div class="finding-owasp">API2:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">POST /auth/login</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">JWT tokens never expire — stolen tokens valid forever.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "jwt_payload_keys": [
+    "user_id",
+    "role"
+  ],
+  "missing": "exp"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Add exp claim. Set expiry to 15-60 minutes.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Broken Auth — JWT 'None' Algorithm Attack Successful</div>
+          <div class="finding-owasp">API2:2023 &nbsp;·&nbsp; CVSS 9.0 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-Critical">Critical</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /health</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">API accepts JWT with 'none' algorithm — signature bypassed.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "attack": "JWT none algorithm",
+  "forged_token_prefix": "eyJhbGciOiAibm9uZSIs...",
+  "response_status": 200,
+  "expected": "401 Unauthorized",
+  "actual": "200 OK \u2014 forged token accepted"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Whitelist allowed algorithms. Reject 'none'.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Broken Auth — No brute force protection on login</div>
+          <div class="finding-owasp">API2:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">POST /auth/login</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Login allows unlimited failed attempts — credential stuffing possible.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "attempts_made": 10,
+  "blocked": false,
+  "expected": "429 Too Many Requests after ~5 failures",
+  "actual": "All 10 requests processed without throttling"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Rate limit: block after 5 failures per IP. Add exponential backoff.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Excessive Exposure — /admin/users returns sensitive fields</div>
+          <div class="finding-owasp">API3:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /admin/users</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Endpoint /admin/users returns sensitive internal fields: password. These should never be exposed in API responses.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "sensitive_fields_found": [
+    "password"
+  ],
+  "all_keys": [
+    "users"
+  ],
+  "note": "Fields present in response that should never be exposed via API"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Define explicit response allowlists. Strip sensitive fields before returning data. Use separate DTOs for internal vs external representations.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Excessive Exposure — /health returns sensitive fields</div>
+          <div class="finding-owasp">API3:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /health</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Endpoint /health returns sensitive internal fields: secret. These should never be exposed in API responses.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "sensitive_fields_found": [
+    "secret"
+  ],
+  "all_keys": [
+    "status",
+    "database_url",
+    "secret_key",
+    "debug_mode",
+    "admin_email",
+    "version",
+    "environment"
+  ],
+  "note": "Fields present in response that should never be exposed via API"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Define explicit response allowlists. Strip sensitive fields before returning data. Use separate DTOs for internal vs external representations.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Excessive Exposure — /v1/vehicles returns sensitive fields</div>
+          <div class="finding-owasp">API3:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /v1/vehicles</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Endpoint /v1/vehicles returns sensitive internal fields: internal. These should never be exposed in API responses.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "sensitive_fields_found": [
+    "internal"
+  ],
+  "all_keys": [
+    "vehicles",
+    "api_version",
+    "deprecated",
+    "internal_note"
+  ],
+  "note": "Fields present in response that should never be exposed via API"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Define explicit response allowlists. Strip sensitive fields before returning data. Use separate DTOs for internal vs external representations.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">No Rate Limiting — Rentals endpoint</div>
+          <div class="finding-owasp">API4:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /rentals</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Endpoint /rentals has no rate limiting. 50 requests were sent in 103.3s without any throttling response.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "description": "50 rapid requests sent \u2014 no throttling detected",
+  "total_requests": 50,
+  "successful_requests": 50,
+  "duration_seconds": 103.34,
+  "requests_per_second": 0.5,
+  "status_codes": [
+    200
+  ],
+  "429_received": false,
+  "expected": "429 Too Many Requests",
+  "actual": "All 50 requests returned 200 OK"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Implement rate limiting (e.g., 100 requests per minute per user). Return 429 Too Many Requests with Retry-After header when exceeded. Consider implementing token bucket or sliding window algorithms.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Unrestricted Resource Consumption — no rate limiting</div>
+          <div class="finding-owasp">API4:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /auth/profile</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">The endpoint /auth/profile served 30 rapid requests with no throttling (no HTTP 429). This permits scraping, brute force, and denial-of-service by resource exhaustion.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "detection": "generic",
+  "requests_sent": 30,
+  "successful": 30,
+  "any_429": false,
+  "expected": "429 Too Many Requests after a threshold",
+  "actual": "all requests completed without throttling"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Apply per-user/per-IP rate limiting at the gateway or middleware.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">No Rate Limiting on Authentication Endpoint</div>
+          <div class="finding-owasp">API4:2023 &nbsp;·&nbsp; CVSS 9.0 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge unconfirmed">Unconfirmed</span>
+            
+          
+          <span class="severity-badge sev-Critical">Critical</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">POST /auth/login</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Login endpoint allows unlimited attempts, enabling credential stuffing and brute force attacks.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "attempts": 15,
+  "blocked": false,
+  "expected": "429 after 5 failures",
+  "actual": "No blocking detected"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Block or delay after 5 failed attempts per IP/account. Implement CAPTCHA and account lockout policies.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">BFLA — Regular user accessed admin function: /admin/users</div>
+          <div class="finding-owasp">API5:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /admin/users</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Admin endpoint /admin/users accessible by regular users.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "description": "Get all users (admin only)",
+  "user_status": 200,
+  "admin_status": 200,
+  "expected": "403 Forbidden",
+  "actual": "200 OK",
+  "response_preview": "{\"users\":[{\"id\":1,\"name\":\"Alice Johnson\",\"email\":\"alicetest@gmail.com\",\"password\":\"Password@123\",\"role\":\"user\",\"phone\":\"0851234567\",\"credit_card\":\"4111111111111111\",\"balance\":500.0},{\"id\":2,\"name\":\"Bo"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Implement RBAC. Return 403 for insufficient privileges.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">BFLA — Regular user invoked privileged function</div>
+          <div class="finding-owasp">API5:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /admin/users</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">The endpoint GET /admin/users appears to expose a privileged/administrative function, yet a standard user token receives a successful response. Function-level authorization is not enforced.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "detection": "generic (keyword-identified admin endpoint)",
+  "matched_on": "path/summary admin keyword",
+  "regular_user": "alicetest@gmail.com",
+  "user_status": 200,
+  "admin_confirmed_privileged": true,
+  "expected": "403 Forbidden for non-admin user",
+  "actual": "200 returned to regular user"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Enforce role/permission checks on privileged endpoints server-side. Reject non-privileged callers with HTTP 403 regardless of endpoint knowledge.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Business Logic — FREE promo code reusable unlimited times</div>
+          <div class="finding-owasp">API6:2023 &nbsp;·&nbsp; CVSS 9.0 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-Critical">Critical</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">POST /rentals/promo</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">FREE promo code (100% discount) can be applied unlimited times.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "code_used": "FREE",
+  "discount": "100%",
+  "attempts": 3,
+  "successful": 3,
+  "expected": "One use per user",
+  "actual": "3/3 uses succeeded"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Track per-user promo usage. Enforce single redemption per user per code.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Business Flow Abuse — repeatable sensitive action</div>
+          <div class="finding-owasp">API6:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">POST /payments/process</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">The sensitive business action POST /payments/process succeeded 5/5 times on repeated submission of the same input, indicating no redemption / idempotency / anti-automation control (e.g. a coupon reusable indefinitely).</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "detection": "generic (repeatability test)",
+  "code_used": "WELCOME10",
+  "successful_repeats": "5/5",
+  "expected": "action limited / one-time / idempotent",
+  "actual": "5/5 repeated submissions accepted"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Track single-use tokens/redemptions server-side; add anti-automation controls.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Business Flow Abuse — negative value accepted</div>
+          <div class="finding-owasp">API6:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: Medium</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">POST /payments/process</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">The endpoint POST /payments/process accepted a negative quantity/amount, which can invert a business transaction (e.g. a credit instead of a charge).</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "detection": "generic (negative-value test)",
+  "response_status": 200,
+  "expected": "reject negative quantity/amount",
+  "actual": "negative value processed"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Validate numeric business inputs server-side; reject non-positive values.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">SSRF — Server fetches user-supplied URLs (vehicle import)</div>
+          <div class="finding-owasp">API7:2023 &nbsp;·&nbsp; CVSS 9.0 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-Critical">Critical</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">POST /vehicles/import</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Vehicle import endpoint fetches any user-supplied URL without validation and returns the response.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "ssrf_url": "http://localhost:9000/health",
+  "url_field": "url",
+  "response_status": 200,
+  "fetched_url_status": 200,
+  "fetched_data_preview": "{\"status\":\"healthy\",\"database_url\":\"postgresql://admin:dbpass123@localhost:5432/vehiclerent\",\"secret_key\":\"secret\",\"debug_mode\":true,\"admin_email\":\"admin@test.com\",\"version\":\"1.0.0\",\"environment\":\"production\"}",
+  "proof": "Server returned status_code and data from the fetched URL \u2014 confirming outbound request was made"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Whitelist allowed domains. Block private IP ranges: 127.x, 10.x, 169.254.x. Never return content from fetched URLs to client.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Security Misconfiguration — Sensitive data at /health</div>
+          <div class="finding-owasp">API8:2023 &nbsp;·&nbsp; CVSS 9.0 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-Critical">Critical</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /health</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Endpoint /health publicly exposes sensitive configuration data including: secret, key, database, debug, admin</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "path": "/health",
+  "status_code": 200,
+  "content_type": "application/json",
+  "sensitive_keywords_found": [
+    "secret",
+    "key",
+    "database",
+    "debug",
+    "admin"
+  ],
+  "response_preview": "{\"status\":\"healthy\",\"database_url\":\"postgresql://admin:dbpass123@localhost:5432/vehiclerent\",\"secret_key\":\"secret\",\"debug_mode\":true,\"admin_email\":\"admin@test.com\",\"version\":\"1.0.0\",\"environment\":\"production\"}",
+  "auth_required": false,
+  "note": "Confirmed JSON response (not SPA fallback)"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Disable or restrict access to debug/health endpoints in production. Never expose credentials, secrets, or internal config publicly.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Security Misconfiguration — Wildcard CORS origin</div>
+          <div class="finding-owasp">API8:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">CORS is configured to allow all origins (*).
+Any website can make cross-origin requests to this API.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Credentials": "true",
+  "origin_sent": "https://evil.com"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Restrict CORS to specific trusted origins. Never use wildcard (*) with credentials. Validate Origin header against an allowlist.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Security Misconfiguration — Missing security headers</div>
+          <div class="finding-owasp">API8:2023 &nbsp;·&nbsp; CVSS 5.0 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-Medium">Medium</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Security headers missing: X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security, Content-Security-Policy, X-XSS-Protection</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "missing_headers": [
+    "X-Content-Type-Options",
+    "X-Frame-Options",
+    "Strict-Transport-Security",
+    "Content-Security-Policy",
+    "X-XSS-Protection"
+  ],
+  "present_headers": {
+    "date": "Wed, 22 Jul 2026 06:04:46 GMT",
+    "server": "uvicorn",
+    "content-type": "text/html; charset=utf-8",
+    "content-length": "845",
+    "last-modified": "Thu, 11 Jun 2026 11:21:16 GMT",
+    "etag": "\"91c0ea002c707e51f6005a023839693c\""
+  }
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Add all recommended security headers. Use helmet.js (Node) or equivalent middleware.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Improper Inventory — Deprecated v1 API endpoint still active</div>
+          <div class="finding-owasp">API9:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /v1/vehicles</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Deprecated v1 vehicles endpoint is still active, accessible without authentication, and returns sensitive internal fields.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "v1_status": 200,
+  "v2_status": 200,
+  "v1_requires_auth": false,
+  "v2_requires_auth": true,
+  "v1_exposes_internal_fields": true,
+  "deprecation_note": "Migration to v2 pending \u2014 do not use in production",
+  "expected": "v1 should return 410 Gone",
+  "actual": "v1 returns 200 without authentication"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Return 410 Gone from /v1/vehicles. Enforce authentication on all API versions.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Improper Inventory — API documentation exposed without auth</div>
+          <div class="finding-owasp">API9:2023 &nbsp;·&nbsp; CVSS 5.0 &nbsp;·&nbsp; Confidence: Medium</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-Medium">Medium</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /redoc</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">API documentation/spec at /redoc is reachable without authentication.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "detection": "generic",
+  "status": 200,
+  "expected": "docs restricted in production",
+  "actual": "documentation publicly reachable"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Restrict or remove documentation endpoints in production.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Improper Inventory — multiple live API versions</div>
+          <div class="finding-owasp">API9:2023 &nbsp;·&nbsp; CVSS 5.0 &nbsp;·&nbsp; Confidence: Medium</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-Medium">Medium</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">GET /vehicles</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Multiple API versions are exposed simultaneously (v1, v2); older versions often lack the security controls of the current one.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "detection": "generic",
+  "versions_seen": [
+    "v1",
+    "v2"
+  ],
+  "expected": "deprecated versions retired",
+  "actual": "multiple versions coexist"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Retire deprecated versions; inventory and gate all exposed versions.
+        </div>
+      </div>
+    </div>
+    
+    <div class="finding-card">
+      <div class="finding-header">
+        <div>
+          <div class="finding-title">Unsafe Consumption — Payment metadata reflected unsanitized</div>
+          <div class="finding-owasp">API10:2023 &nbsp;·&nbsp; CVSS 7.5 &nbsp;·&nbsp; Confidence: High</div>
+        </div>
+        <div class="finding-right">
+          
+            
+            <span class="verify-badge confirmed">Confirmed</span>
+            
+          
+          <span class="severity-badge sev-High">High</span>
+        </div>
+      </div>
+      <div class="finding-body">
+        <div class="info-row">
+          <span class="info-label">Endpoint</span>
+          <span class="info-value mono">POST /payments/process</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Description</span>
+          <span class="info-value">Payment endpoint reflects user-supplied metadata back in response without sanitization — unsafe consumption pattern.</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Evidence</span>
+          <div class="info-value" style="flex:1;"><div class="evidence-block">{
+  "payload": "<script>alert('xss')</script>",
+  "field": "metadata",
+  "reflected": true,
+  "response_preview": "{\"payment_result\":{\"status\":\"success\",\"transaction_id\":\"TXN123456\",\"amount_charged\":100,\"currency\":\"EUR\",\"merchant_data\":{\"note\":\"<script>alert('xss')</script>\",\"redirect\":\"http://evil.com?data=<script>alert('xss')</script>\"}},\"rental_id\":1,\"message\":\"Payment processed\"}"
+}</div></div>
+        </div>
+        <div class="remediation-block">
+          <span class="rem-label">Remediation</span>
+          Never reflect user data without sanitization. Validate all inputs and outputs.
+        </div>
+      </div>
+    </div>
+    
+  
+
+</div>
+
+<div class="footer">
+  Generated by ASTRA Framework &nbsp;·&nbsp; For authorised security testing only<br>
+  OWASP API Security Top 10 (2023) &nbsp;·&nbsp; 2026-07-22 11:35:10
+</div>
+
+</body>
+</html>

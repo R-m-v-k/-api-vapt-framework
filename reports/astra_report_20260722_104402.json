@@ -1,0 +1,417 @@
+{
+  "framework": "ASTRA v1.0",
+  "target": "http://localhost:4000",
+  "scan_date": "2026-07-22 10:44:02",
+  "duration": "0:00:20",
+  "summary": {
+    "critical": 7,
+    "high": 7,
+    "medium": 3,
+    "low": 0,
+    "total": 17
+  },
+  "coverage": {
+    "detected": 9,
+    "total": 10,
+    "percentage": 90.0
+  },
+  "findings": [
+    {
+      "owasp_id": "API1:2023",
+      "title": "BOLA \u2014 Cross-user data access via /api/v1/users/1",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/api/v1/users/1",
+      "method": "GET",
+      "evidence": {
+        "path_template": "/api/v1/users/{id}",
+        "test_id": 1,
+        "user_a": "usera@test.com",
+        "user_b": "userb@test.com",
+        "token_used": "User B token",
+        "response_status": 200,
+        "similarity_score": 1.0,
+        "ownership_mismatch": true,
+        "sensitive_fields_exposed": [
+          "id=1",
+          "phone=+61 3 9000 0000"
+        ],
+        "differential_analysis": {
+          "similarity_analysis": "Similarity score 100.00% \u2014 requester received near-identical data to owner's resource",
+          "ownership_analysis": "Response contains owner's identifying fields: ['id=1', 'phone=+61 3 9000 0000'] \u2014 requester received another user's data",
+          "summary": "Differential analysis: similarity=100.00%, ownership_mismatch=True, sensitive_fields=2, confidence=Critical"
+        },
+        "expected": "403 Forbidden for User B",
+        "actual": "200 OK \u2014 data returned"
+      },
+      "description": "Endpoint /api/v1/users/1 returns data to any authenticated user regardless of resource ownership. User B accessed an object belonging to User A without authorization check.",
+      "remediation": "Implement object-level authorization. Before returning any resource, verify: does the requesting user own this object? Return HTTP 403 if ownership check fails.",
+      "confidence": "Critical",
+      "fp_verified": true,
+      "verification_note": "Re-verified: HTTP 200 on second attempt"
+    },
+    {
+      "owasp_id": "API1:2023",
+      "title": "BOLA \u2014 Cross-user data access via /api/v1/orders/1",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/api/v1/orders/1",
+      "method": "GET",
+      "evidence": {
+        "path_template": "/api/v1/orders/{id}",
+        "test_id": 1,
+        "user_a": "usera@test.com",
+        "user_b": "userb@test.com",
+        "token_used": "User B token",
+        "response_status": 200,
+        "similarity_score": 1.0,
+        "ownership_mismatch": true,
+        "sensitive_fields_exposed": [
+          "order_id=1",
+          "id=1",
+          "menu_item_id=1"
+        ],
+        "differential_analysis": {
+          "similarity_analysis": "Similarity score 100.00% \u2014 requester received near-identical data to owner's resource",
+          "ownership_analysis": "Response contains owner's identifying fields: ['order_id=1', 'id=1', 'menu_item_id=1'] \u2014 requester received another user's data",
+          "summary": "Differential analysis: similarity=100.00%, ownership_mismatch=True, sensitive_fields=3, confidence=Critical"
+        },
+        "expected": "403 Forbidden for User B",
+        "actual": "200 OK \u2014 data returned"
+      },
+      "description": "Endpoint /api/v1/orders/1 returns data to any authenticated user regardless of resource ownership. User B accessed an object belonging to User A without authorization check.",
+      "remediation": "Implement object-level authorization. Before returning any resource, verify: does the requesting user own this object? Return HTTP 403 if ownership check fails.",
+      "confidence": "Critical",
+      "fp_verified": true,
+      "verification_note": "Re-verified: HTTP 200 on second attempt"
+    },
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth \u2014 /api/v1/menu returns data without authentication",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/api/v1/menu",
+      "method": "GET",
+      "evidence": {
+        "authentication_header": "ABSENT",
+        "response_status": 200,
+        "content_type": "application/json; charset=utf-8",
+        "expected": "401 Unauthorized",
+        "actual": "200 OK \u2014 JSON data returned without token",
+        "sensitive_fields_in_response": [],
+        "response_size_bytes": 1250,
+        "note": "Confirmed real endpoint \u2014 not a guessed path"
+      },
+      "description": "Endpoint /api/v1/menu returns data to unauthenticated requests. No Authorization header required. T-Mobile 2023 breach pattern: unauthenticated endpoints exposed 37 million customer records.",
+      "remediation": "Add authentication middleware to this endpoint. Return HTTP 401 for all requests without a valid token.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth \u2014 /api/v1/coupons returns data without authentication",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/api/v1/coupons",
+      "method": "GET",
+      "evidence": {
+        "authentication_header": "ABSENT",
+        "response_status": 200,
+        "content_type": "application/json; charset=utf-8",
+        "expected": "401 Unauthorized",
+        "actual": "200 OK \u2014 JSON data returned without token",
+        "sensitive_fields_in_response": [],
+        "response_size_bytes": 88,
+        "note": "Confirmed real endpoint \u2014 not a guessed path"
+      },
+      "description": "Endpoint /api/v1/coupons returns data to unauthenticated requests. No Authorization header required. T-Mobile 2023 breach pattern: unauthenticated endpoints exposed 37 million customer records.",
+      "remediation": "Add authentication middleware to this endpoint. Return HTTP 401 for all requests without a valid token.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth \u2014 /api/old/menu returns data without authentication",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/api/old/menu",
+      "method": "GET",
+      "evidence": {
+        "authentication_header": "ABSENT",
+        "response_status": 200,
+        "content_type": "application/json; charset=utf-8",
+        "expected": "401 Unauthorized",
+        "actual": "200 OK \u2014 JSON data returned without token",
+        "sensitive_fields_in_response": [],
+        "response_size_bytes": 1480,
+        "note": "Confirmed real endpoint \u2014 not a guessed path"
+      },
+      "description": "Endpoint /api/old/menu returns data to unauthenticated requests. No Authorization header required. T-Mobile 2023 breach pattern: unauthenticated endpoints exposed 37 million customer records.",
+      "remediation": "Add authentication middleware to this endpoint. Return HTTP 401 for all requests without a valid token.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API2:2023",
+      "title": "Broken Auth \u2014 No brute force protection on login",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/api/v1/auth/login",
+      "method": "POST",
+      "evidence": {
+        "attempts_made": 10,
+        "blocked": false,
+        "expected": "429 Too Many Requests after ~5 failures",
+        "actual": "All 10 requests processed without throttling"
+      },
+      "description": "Login allows unlimited failed attempts \u2014 credential stuffing possible.",
+      "remediation": "Rate limit: block after 5 failures per IP. Add exponential backoff.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "JWT/brute force finding \u2014 accepted"
+    },
+    {
+      "owasp_id": "API4:2023",
+      "title": "No Rate Limiting on Authentication Endpoint",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/api/v1/auth/login",
+      "method": "POST",
+      "evidence": {
+        "attempts": 15,
+        "blocked": false,
+        "expected": "429 after 5 failures",
+        "actual": "No blocking detected"
+      },
+      "description": "Login endpoint allows unlimited attempts, enabling credential stuffing and brute force attacks.",
+      "remediation": "Block or delay after 5 failed attempts per IP/account. Implement CAPTCHA and account lockout policies.",
+      "confidence": "High",
+      "fp_verified": false,
+      "rejection_reason": "Inconsistent results on re-test"
+    },
+    {
+      "owasp_id": "API5:2023",
+      "title": "BFLA \u2014 Regular user invoked privileged function",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/api/v1/admin/users",
+      "method": "GET",
+      "evidence": {
+        "detection": "generic (keyword-identified admin endpoint)",
+        "matched_on": "path/summary admin keyword",
+        "regular_user": "usera@test.com",
+        "user_status": 200,
+        "admin_confirmed_privileged": false,
+        "expected": "403 Forbidden for non-admin user",
+        "actual": "200 returned to regular user"
+      },
+      "description": "The endpoint GET /api/v1/admin/users appears to expose a privileged/administrative function, yet a standard user token receives a successful response. Function-level authorization is not enforced.",
+      "remediation": "Enforce role/permission checks on privileged endpoints server-side. Reject non-privileged callers with HTTP 403 regardless of endpoint knowledge.",
+      "confidence": "Medium",
+      "fp_verified": true,
+      "verification_note": "No verifier available \u2014 accepted by default"
+    },
+    {
+      "owasp_id": "API5:2023",
+      "title": "BFLA \u2014 Regular user invoked privileged function",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/api/v1/admin/orders",
+      "method": "GET",
+      "evidence": {
+        "detection": "generic (keyword-identified admin endpoint)",
+        "matched_on": "path/summary admin keyword",
+        "regular_user": "usera@test.com",
+        "user_status": 200,
+        "admin_confirmed_privileged": false,
+        "expected": "403 Forbidden for non-admin user",
+        "actual": "200 returned to regular user"
+      },
+      "description": "The endpoint GET /api/v1/admin/orders appears to expose a privileged/administrative function, yet a standard user token receives a successful response. Function-level authorization is not enforced.",
+      "remediation": "Enforce role/permission checks on privileged endpoints server-side. Reject non-privileged callers with HTTP 403 regardless of endpoint knowledge.",
+      "confidence": "Medium",
+      "fp_verified": true,
+      "verification_note": "No verifier available \u2014 accepted by default"
+    },
+    {
+      "owasp_id": "API5:2023",
+      "title": "BFLA \u2014 Regular user invoked privileged function",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/api/v1/admin/stats",
+      "method": "GET",
+      "evidence": {
+        "detection": "generic (keyword-identified admin endpoint)",
+        "matched_on": "path/summary admin keyword",
+        "regular_user": "usera@test.com",
+        "user_status": 200,
+        "admin_confirmed_privileged": false,
+        "expected": "403 Forbidden for non-admin user",
+        "actual": "200 returned to regular user"
+      },
+      "description": "The endpoint GET /api/v1/admin/stats appears to expose a privileged/administrative function, yet a standard user token receives a successful response. Function-level authorization is not enforced.",
+      "remediation": "Enforce role/permission checks on privileged endpoints server-side. Reject non-privileged callers with HTTP 403 regardless of endpoint knowledge.",
+      "confidence": "Medium",
+      "fp_verified": true,
+      "verification_note": "No verifier available \u2014 accepted by default"
+    },
+    {
+      "owasp_id": "API6:2023",
+      "title": "Business Flow Abuse \u2014 negative value accepted",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/api/v1/orders/1/kitchen-webhook",
+      "method": "POST",
+      "evidence": {
+        "detection": "generic (negative-value test)",
+        "response_status": 200,
+        "expected": "reject negative quantity/amount",
+        "actual": "negative value processed"
+      },
+      "description": "The endpoint POST /api/v1/orders/1/kitchen-webhook accepted a negative quantity/amount, which can invert a business transaction (e.g. a credit instead of a charge).",
+      "remediation": "Validate numeric business inputs server-side; reject non-positive values.",
+      "confidence": "Medium",
+      "fp_verified": true,
+      "verification_note": "No verifier available \u2014 accepted by default"
+    },
+    {
+      "owasp_id": "API6:2023",
+      "title": "Business Flow Abuse \u2014 repeatable sensitive action",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/api/v1/coupons/apply",
+      "method": "POST",
+      "evidence": {
+        "detection": "generic (repeatability test)",
+        "code_used": "WELCOME10",
+        "successful_repeats": "5/5",
+        "expected": "action limited / one-time / idempotent",
+        "actual": "5/5 repeated submissions accepted"
+      },
+      "description": "The sensitive business action POST /api/v1/coupons/apply succeeded 5/5 times on repeated submission of the same input, indicating no redemption / idempotency / anti-automation control (e.g. a coupon reusable indefinitely).",
+      "remediation": "Track single-use tokens/redemptions server-side; add anti-automation controls.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API7:2023",
+      "title": "SSRF \u2014 server fetched attacker-controlled URL",
+      "severity": "Critical",
+      "cvss_score": 9.0,
+      "endpoint": "/api/v1/menu/import-image",
+      "method": "POST",
+      "evidence": {
+        "detection": "generic (internal callback fetch confirmed)",
+        "url_field": "image_url",
+        "callback_url": "http://localhost:4000/health",
+        "response_status": 200,
+        "server_fetch_evidence": "{\"message\":\"Image imported\",\"fetched_url\":\"http://localhost:4000/health\",\"content_type\":\"application/json; charset=utf-8\",\"status\":200,\"preview\":\"{\\\"status\\\":\\\"ok\\\"}\"}",
+        "expected": "URL validation / deny internal targets",
+        "actual": "server retrieved the supplied internal URL"
+      },
+      "description": "The endpoint POST /api/v1/menu/import-image accepted a client-supplied URL in field 'image_url' and the server fetched it (http://localhost:4000/health). An attacker can make the server issue requests to internal services (SSRF).",
+      "remediation": "Validate and allow-list outbound URLs. Block internal ranges (127.0.0.0/8, 169.254.0.0/16, RFC1918) and non-HTTP schemes.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    },
+    {
+      "owasp_id": "API8:2023",
+      "title": "Security Misconfiguration \u2014 Wildcard CORS origin",
+      "severity": "High",
+      "cvss_score": 7.5,
+      "endpoint": "/",
+      "method": "GET",
+      "evidence": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Credentials": "",
+        "origin_sent": "https://evil.com"
+      },
+      "description": "CORS is configured to allow all origins (*).\nAny website can make cross-origin requests to this API.",
+      "remediation": "Restrict CORS to specific trusted origins. Never use wildcard (*) with credentials. Validate Origin header against an allowlist.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "Re-verified: Access-Control-Allow-Origin = *"
+    },
+    {
+      "owasp_id": "API8:2023",
+      "title": "Security Misconfiguration \u2014 Missing security headers",
+      "severity": "Medium",
+      "cvss_score": 5.0,
+      "endpoint": "/",
+      "method": "GET",
+      "evidence": {
+        "missing_headers": [
+          "X-Content-Type-Options",
+          "X-Frame-Options",
+          "Strict-Transport-Security",
+          "Content-Security-Policy",
+          "X-XSS-Protection"
+        ],
+        "present_headers": {
+          "X-Powered-By": "Express",
+          "Access-Control-Allow-Origin": "*",
+          "Accept-Ranges": "bytes",
+          "Cache-Control": "public, max-age=0",
+          "Last-Modified": "Wed, 22 Jul 2026 08:08:22 GMT",
+          "ETag": "W/\"6f8-19f88de5cf0\"",
+          "Content-Type": "text/html; charset=utf-8",
+          "Content-Length": "1784",
+          "Date": "Wed, 22 Jul 2026 05:14:02 GMT",
+          "Connection": "keep-alive",
+          "Keep-Alive": "timeout=5"
+        }
+      },
+      "description": "Security headers missing: X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security, Content-Security-Policy, X-XSS-Protection",
+      "remediation": "Add all recommended security headers. Use helmet.js (Node) or equivalent middleware.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "Re-verified: still missing ['x-content-type-options', 'x-frame-options', 'strict-transport-security', 'content-security-policy', 'x-xss-protection']"
+    },
+    {
+      "owasp_id": "API9:2023",
+      "title": "Improper Inventory \u2014 API documentation exposed without auth",
+      "severity": "Medium",
+      "cvss_score": 5.0,
+      "endpoint": "/api-docs",
+      "method": "GET",
+      "evidence": {
+        "detection": "generic",
+        "status": 200,
+        "expected": "docs restricted in production",
+        "actual": "documentation publicly reachable"
+      },
+      "description": "API documentation/spec at /api-docs is reachable without authentication.",
+      "remediation": "Restrict or remove documentation endpoints in production.",
+      "confidence": "Medium",
+      "fp_verified": true,
+      "verification_note": "No verifier available \u2014 accepted by default"
+    },
+    {
+      "owasp_id": "API10:2023",
+      "title": "Unsafe Consumption \u2014 external data reflected unsanitised",
+      "severity": "Medium",
+      "cvss_score": 5.0,
+      "endpoint": "/api/v1/orders/1/kitchen-webhook",
+      "method": "POST",
+      "evidence": {
+        "detection": "generic (reflection probe)",
+        "marker": "ASTRA_RFL_7Q2<b>x</b>",
+        "reflected": true,
+        "raw_html_survived": true,
+        "response_preview": "Kitchen update received for order #1: ASTRA_RFL_7Q2<b>x</b> (staff: n/a)",
+        "expected": "validate/encode consumed data",
+        "actual": "injected payload reflected with raw HTML intact"
+      },
+      "description": "The endpoint POST /api/v1/orders/1/kitchen-webhook consumes external/third-party data and reflected an injected payload without output encoding (raw HTML preserved), risking propagation of malicious data from a compromised upstream service.",
+      "remediation": "Validate, sanitise, and output-encode data received from external services before use.",
+      "confidence": "High",
+      "fp_verified": true,
+      "verification_note": "High confidence \u2014 accepted without re-test"
+    }
+  ]
+}
