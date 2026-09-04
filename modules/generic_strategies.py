@@ -1,24 +1,3 @@
-# modules/generic_strategies.py  Target-Agnostic Detection v1.0
-#
-# WHY THIS EXISTS
-#   The original modules branched on target_type and only carried
-#   crAPI / custom-API endpoint paths. On any other target (vAPI, a MERN
-#   app, an arbitrary REST API) they therefore did nothing.
-#
-#   This module provides reusable, endpoint-driven detection strategies that
-#   work on any API using only:
-#     - the endpoints discovered from a served OpenAPI spec, OR
-#     - the endpoints supplied via --endpoints-file, OR
-#     - light probing fallback,
-#   plus the multi-user tokens the AuthHandler already holds.
-#
-#   No hardcoded target paths. Each strategy is a mixin method that a module
-#   calls in its generic branch (i.e. when the target is not crapi/custom).
-#
-#   Every method appends to self.findings via self.add_finding(...) and uses
-#   self.requester / self.auth / self.config exactly like the existing modules,
-#   so nothing else in the framework needs to change.
-
 import re
 import time
 from typing import List, Dict, Optional
